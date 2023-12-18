@@ -1,0 +1,17 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Marketing extends Model
+{
+    use HasFactory;
+    protected $table = 'marketing';
+    protected $fillable = ['mes','invertido','clics','id_web','ctr'];
+    public function Web(){
+        return $this->hasOne(FacebookForm::class,'id','id_web');
+    }
+    
+}

@@ -1,0 +1,219 @@
+<template>
+    <div style="margin-top: 2rem">
+        <h2>Lista Resumen Ventas</h2>
+
+        <v-row>
+            <v-col cols="12" md="4">
+                <v-text-field
+                    prepend-icon="mdi-account-search"
+                    v-model="search"
+                    label="busqueda"
+                ></v-text-field>
+            </v-col>
+            <v-col cols="12" md="4">
+                <v-autocomplete :items="years" v-model="year"> </v-autocomplete>
+            </v-col>
+        </v-row>
+        <v-data-table
+            dense
+            :headers="headers"
+            :items="gastos"
+            :search="search"
+            :items-per-page="15"
+            item-key="id"
+            class="elevation-1"
+            :sort-by="['nombre']"
+            :sort-desc="[false]"
+        >
+            <template v-slot:item.mes="{ item }">
+                {{ meses[item.mes] }}
+            </template>
+            <template v-slot:item.total_sin_iva="{ item }">
+                {{ item.total_sin_iva.toFixed(2) }} €
+            </template>
+
+            <template v-slot:item.total="{ item }">
+                {{ item.total }} €
+            </template>
+            <template v-slot:item.gasto="{ item }">
+                {{ item.gasto }} €
+            </template>
+            <template v-slot:item.beneficio="{ item }">
+                {{ item.beneficio.toFixed(2) }} €
+            </template>
+            <template v-slot:item.action="{ item }">
+                <v-icon
+                    @click="
+                        () => {
+                            gasto = item;
+                            form_dialog = true;
+                        }
+                    "
+                    small
+                    class="mr-2"
+                    color="#1d2735"
+                    style="font-size: 25px"
+                    title="EDITAR"
+                    >mdi-pencil-outline</v-icon
+                >
+
+                <v-icon
+                    @click="openModal(item)"
+                    small
+                    class="mr-2"
+                    color="red"
+                    style="font-size: 25px"
+                    title="BORRAR"
+                    >mdi-trash-can</v-icon
+                >
+            </template>
+        </v-data-table>
+
+        <v-dialog v-model="dialog" max-width="500px">
+            <v-card>
+                <v-card-title
+                    class="text-h5 aviso"
+                    style="
+                        justify-content: center;
+                        background: #1d2735;
+                        color: white;
+                    "
+                >
+                    Aviso
+                </v-card-title>
+                <v-card-text style="text-align: center">
+                    <h2>¿Estás seguro que deseas eliminar?</h2>
+                </v-card-text>
+                <v-card-actions class="pt-3">
+                    <v-spacer></v-spacer>
+                    <v-btn
+                        color="error"
+                        large
+                        @click="
+                            dialog = false;
+                            selectedItem = {};
+                        "
+                        >Cancelar</v-btn
+                    >
+                    <v-btn color="success" large @click="deleteUser()"
+                        >Confirmar</v-btn
+                    >
+                    <v-spacer></v-spacer>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
+    </div>
+</template>
+<script>
+import FilterComponentVue from "../../../../components/general/FilterComponent.vue";
+
+export default {
+    components: { FilterComponentVue },
+    data() {
+        return {
+            meses: [
+                "0",
+                "Enero",
+                "Febrero",
+                "Marzo",
+                "Abril",
+                "Mayo",
+                "Junio",
+                "Julio",
+                "Agosto",
+                "Septiembre",
+                "Octubre",
+                "Noviembre",
+                "Diciembre",
+            ],
+            search: "",
+            year: new Date().getFullYear(),
+            years: [],
+
+            headers: [
+                { text: "Mes", value: "mes", sortable: false },
+                { text: "Total", value: "total", sortable: false },
+                {
+                    text: "Total Sin Iva",
+                    value: "total_sin_iva",
+                    sortable: false,
+                },
+                { text: "Gasto", value: "gasto", sortable: false },
+                { text: "Beneficio", value: "beneficio", sortable: false },
+            ],
+            form_dialog: false,
+            gasto: {},
+            gastos: [],
+            selectedItem: 0,
+            dialog: false,
+            tipos: [],
+        };
+    },
+    created() {
+        this.getGastos();
+        this.generateYears();
+    },
+    watch: {
+        year: {
+            handler(val) {
+                this.getGastos();
+            },
+        },
+    },
+    methods: {
+        getTipos() {
+            const self = this;
+            axios.get(`api/get-tfg-gastos-tipos`).then(function (response) {
+                self.tipos = response.data;
+                self.filter_headers[0].items = response.data;
+            });
+        },
+        generateYears() {
+            const currentYear = new Date().getFullYear();
+            const startYear = 2020;
+            const years = [];
+
+            for (let year = startYear; year <= currentYear; year++) {
+                years.push({ text: year, value: year });
+            }
+            this.years = years;
+        },
+        getGastos() {
+            axios.get(`api/get-ventas-tfg/${this.year}`).then(
+                (res) => {
+                    this.gastos = res.data;
+                },
+                (err) => {
+                    this.$toast.error("Error consultando Gastos");
+                }
+            );
+        },
+        openModal(item) {
+            this.selectedItem = item;
+            this.dialog = true;
+        },
+        deleteUser() {
+            console.log(this.selectedItem);
+            axios
+                .post("api/delete-tfg-gasto", {
+                    id: this.selectedItem.id,
+                })
+                .then(
+                    (res) => {
+                        this.$toast.sucs("Gasto eliminado");
+                        this.dialog = false;
+                        this.getGastos();
+                    },
+                    (err) => {
+                        this.$toast.error("Error eliminando Gasto");
+                    }
+                );
+        },
+    },
+    computed: {
+        isLoading: function () {
+            return this.$store.getters.getloading;
+        },
+    },
+};
+</script>

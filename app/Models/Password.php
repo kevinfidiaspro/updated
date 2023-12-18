@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Model;
+
+class Password extends Model
+{
+    use SoftDeletes;
+
+    protected $table = 'password';
+
+    protected $fillable = [
+      'web',
+      'usuario_mail',
+      'password',
+      'tipo',
+      'observaciones'
+    ];
+
+}
